@@ -1,0 +1,23 @@
+# AI Content Generator Requirements
+# 内容生成器依赖
+
+# 核心依赖
+openai>=1.0.0          # OpenAI API (实际生成时使用)
+anthropic>=0.0.0       # Claude API (可选)
+
+# Web服务
+flask>=2.0.0           # Web框架
+flask-cors>=3.0.0      # 跨域支持
+
+# 实用工具
+python-dotenv>=0.19.0   # 环境变量
+requests>=2.28.0        # HTTP请求
+
+# 可选依赖
+# pip install aiohttp httpx  # 异步支持
+# pip install python-twitter   # Twitter API
+# pip install linkedin-api    # LinkedIn API
+
+# 开发工具
+# pip install pytest pytest-cov  # 测试
+# pip install black flake8     # 代码格式

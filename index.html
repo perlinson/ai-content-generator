@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 AI内容生成器 - 多平台内容创作平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e8e8e8;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        /* 头部 */
+        .header {
+            text-align: center;
+            padding: 30px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(0,255,136,0.3);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 28px;
+            background: linear-gradient(90deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* 统计卡片 */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        .stat-label { font-size: 12px; color: #888; margin-top: 5px; }
+        
+        /* 主网格 */
+        .grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+        
+        /* 面板 */
+        .panel {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 15px 20px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-title { color: #00ff88; font-size: 14px; }
+        
+        /* 平台选择 */
+        .platforms-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 15px;
+        }
+        .platform-btn {
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .platform-btn:hover { background: rgba(0,255,136,0.1); }
+        .platform-btn.selected {
+            border-color: #00ff88;
+            background: rgba(0,255,136,0.15);
+        }
+        .platform-icon { font-size: 24px; display: block; margin-bottom: 5px; }
+        .platform-name { font-size: 12px; color: #ccc; }
+        
+        /* 表单 */
+        .form-group { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .form-group label { display: block; font-size: 12px; color: #888; margin-bottom: 8px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+        }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        
+        /* 生成按钮 */
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #00ff88, #00ccff);
+            border: none;
+            border-radius: 10px;
+            color: #000;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 15px;
+            transition: transform 0.2s;
+        }
+        .generate-btn:hover { transform: scale(1.02); }
+        
+        /* 内容展示 */
+        .content-area { padding: 20px; }
+        .content-preview {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 400px;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        
+        /* 标签 */
+        .tags-area { padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .tag {
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            font-size: 12px;
+        }
+        .tag.hashtag { background: rgba(0,200,255,0.2); color: #00ccff; }
+        
+        /* 历史记录 */
+        .history-list { max-height: 300px; overflow-y: auto; padding: 10px; }
+        .history-item {
+            padding: 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .history-item:hover { background: rgba(0,255,136,0.1); }
+        .history-title { font-size: 13px; color: #fff; margin-bottom: 3px; }
+        .history-meta { font-size: 10px; color: #888; display: flex; gap: 10px; }
+        
+        /* 模板卡片 */
+        .template-grid { display: grid; gap: 10px; padding: 15px; }
+        .template-item {
+            padding: 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .template-item:hover { border-color: #00ff88; }
+        .template-name { font-size: 13px; color: #fff; margin-bottom: 3px; }
+        .template-type { font-size: 10px; color: #888; }
+        
+        /* Tab */
+        .tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .tab:hover { color: #fff; }
+        .tab.active { color: #00ff88; border-bottom: 2px solid #00ff88; }
+        
+        /* 质量指示器 */
+        .quality-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .quality-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s;
+        }
+        .quality-high { background: linear-gradient(90deg, #00ff88, #00ccff); }
+        .quality-mid { background: linear-gradient(90deg, #ffd700, #ffa502); }
+        .quality-low { background: linear-gradient(90deg, #ff4757, #ff6b81); }
+        
+        /* 加载动画 */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .loading.active { display: block; }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* 提示 */
+        .tip {
+            font-size: 11px;
+            color: #888;
+            padding: 10px 15px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 6px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 AI内容生成器</h1>
+        <p style="color: #888; font-size: 12px; margin-top: 10px;">多平台内容创作平台 - 支持博客、社交媒体、营销文案</p>
+    </div>
+    
+    <div class="container">
+        <!-- 统计卡片 -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-value" id="totalGenerated">0</div>
+                <div class="stat-label">已生成内容</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgQuality">0%</div>
+                <div class="stat-label">平均质量</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="platformsUsed">5</div>
+                <div class="stat-label">使用平台</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="timeSaved">0h</div>
+                <div class="stat-label">节省时间</div>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <!-- 左侧面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">📝 创建内容</span>
+                </div>
+                
+                <!-- 平台选择 -->
+                <div class="platforms-grid" id="platformsGrid">
+                    <div class="platform-btn selected" data-platform="blog" onclick="selectPlatform(this)">
+                        <span class="platform-icon">📝</span>
+                        <span class="platform-name">技术博客</span>
+                    </div>
+                    <div class="platform-btn" data-platform="twitter" onclick="selectPlatform(this)">
+                        <span class="platform-icon">🐦</span>
+                        <span class="platform-name">Twitter/X</span>
+                    </div>
+                    <div class="platform-btn" data-platform="weibo" onclick="selectPlatform(this)">
+                        <span class="platform-icon">🔹</span>
+                        <span class="platform-name">微博</span>
+                    </div>
+                    <div class="platform-btn" data-platform="linkedin" onclick="selectPlatform(this)">
+                        <span class="platform-icon">💼</span>
+                        <span class="platform-name">LinkedIn</span>
+                    </div>
+                    <div class="platform-btn" data-platform="zhihu" onclick="selectPlatform(this)">
+                        <span class="platform-icon">知乎</span>
+                        <span class="platform-name">知乎</span>
+                    </div>
+                    <div class="platform-btn" data-platform="instagram" onclick="selectPlatform(this)">
+                        <span class="platform-icon">📷</span>
+                        <span class="platform-name">Instagram</span>
+                    </div>
+                </div>
+                
+                <!-- 输入表单 -->
+                <div class="form-group">
+                    <label>选择内容类型</label>
+                    <select id="contentType">
+                        <option value="article">长文章 (1500-3000字)</option>
+                        <option value="post">短动态 (100-280字)</option>
+                        <option value="headline">爆款标题</option>
+                        <option value="ad_copy">营销文案</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>主题/关键词</label>
+                    <input type="text" id="topic" placeholder="例如：Python异步编程、AI工具推荐、产品发布">
+                </div>
+                
+                <div class="form-group">
+                    <label>风格偏好</label>
+                    <select id="tone">
+                        <option value="neutral">专业中性</option>
+                        <option value="casual">轻松有趣</option>
+                        <option value="humorous">幽默风趣</option>
+                        <option value="formal">正式严肃</option>
+                        <option value="inspirational">励志鼓舞</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>补充说明（可选）</label>
+                    <textarea id="description" placeholder="添加更多细节，帮助AI生成更准确的内容..."></textarea>
+                </div>
+                
+                <button class="generate-btn" onclick="generateContent()">
+                    ✨ AI生成内容
+                </button>
+                
+                <div class="tip">
+                    💡 提示：描述越详细，生成的内容越精准
+                </div>
+            </div>
+            
+            <!-- 右侧面板 -->
+            <div>
+                <div class="panel">
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab('preview')">预览</button>
+                        <button class="tab" onclick="switchTab('history')">历史记录</button>
+                        <button class="tab" onclick="switchTab('templates')">模板库</button>
+                    </div>
+                    
+                    <!-- 预览 -->
+                    <div id="previewTab">
+                        <div class="loading" id="loading">
+                            <div class="spinner"></div>
+                            <div style="color: #888;">AI正在创作中...</div>
+                        </div>
+                        
+                        <div class="content-area" id="contentArea">
+                            <div id="contentPreview" class="content-preview" contenteditable="true">
+🎯 欢迎使用AI内容生成器！
+
+选择一个平台，输入主题，点击"AI生成内容"开始创作。
+
+📝 支持的内容类型：
+• 技术博客文章
+• 社交媒体动态
+• 营销推广文案
+• 爆款标题生成
+• 产品描述
+
+🌟 AI会根据你的需求自动生成高质量内容！
+                            </div>
+                            
+                            <div class="tags-area">
+                                <div style="font-size: 12px; color: #888;">话题标签</div>
+                                <div class="tags-row" id="tagsRow">
+                                    <span class="tag hashtag">#AI内容生成</span>
+                                    #自动化营销 #效率工具
+                                </div>
+                                
+                                <div class="quality-bar">
+                                    <div class="quality-fill quality-high" id="qualityBar" style="width: 85%;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-top: 5px;">
+                                    <span>内容质量评分</span>
+                                    <span id="qualityScore">85%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 历史 -->
+                    <div id="historyTab" style="display: none;">
+                        <div class="history-list" id="historyList">
+                            <!-- 历史记录动态生成 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 模板 -->
+                    <div id="templatesTab" style="display: none;">
+                        <div class="template-grid" id="templateGrid">
+                            <div class="template-item" onclick="applyTemplate(this)">
+                                <div class="template-name">📝 技术博客文章模板</div>
+                                <div class="template-type">专业详细 · 1500-3000字</div>
+                            </div>
+                            <div class="template-item" onclick="applyTemplate(this)">
+                                <div class="template-name">🐦 Twitter/X 推文模板</div>
+                                <div class="template-type">简洁有力 · 200-280字</div>
+                            </div>
+                            <div class="template-item" onclick="applyTemplate(this)">
+                                <div class="template-name">🔹 微博推广模板</div>
+                                <div class="template-type">轻松有趣 · 100-200字</div>
+                            </div>
+                            <div class="template-item" onclick="applyTemplate(this)">
+                                <div class="template-name">💼 LinkedIn职场分享</div>
+                                <div class="template-type">专业真诚 · 800-1500字</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 快捷操作 -->
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-header">
+                        <span class="panel-title">🚀 快捷操作</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; padding: 15px; flex-wrap: wrap;">
+                        <button onclick="copyContent()" style="flex:1; padding:12px; background:linear-gradient(135deg, #00ff88, #00ccff); border:none; border-radius:8px; color:#000; font-weight:bold; cursor:pointer;">📋 复制内容</button>
+                        <button onclick="regenerate()" style="flex:1; padding:12px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:#fff; cursor:pointer;">🔄 重新生成</button>
+                        <button onclick="downloadContent()" style="flex:1; padding:12px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:#fff; cursor:pointer;">💾 下载</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 状态管理
+        let state = {
+            currentPlatform: 'blog',
+            currentType: 'article',
+            history: [],
+            templates: [
+                { platform: 'blog', type: 'article', name: '技术博客文章' },
+                { platform: 'twitter', type: 'post', name: '技术分享推文' },
+                { platform: 'weibo', type: 'post', name: '微博推广' },
+                { platform: 'linkedin', type: 'post', name: '职场洞察' }
+            ]
+        };
+        
+        // 平台图标映射
+        const platformIcons = {
+            blog: '📝',
+            twitter: '🐦',
+            weibo: '🔹',
+            linkedin: '💼',
+            zhihu: '知乎',
+            instagram: '📷',
+            medium: '📰'
+        };
+        
+        // 选择平台
+        function selectPlatform(btn) {
+            document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            state.currentPlatform = btn.dataset.platform;
+            updateContentTypes();
+        }
+        
+        // 更新内容类型选项
+        function updateContentTypes() {
+            const types = {
+                blog: [
+                    { value: 'article', text: '长文章 (1500-3000字)' },
+                    { value: 'headline', text: '爆款标题' }
+                ],
+                twitter: [
+                    { value: 'post', text: '推文 (200-280字)' },
+                    { value: 'headline', text: '病毒式标题' }
+                ],
+                weibo: [
+                    { value: 'post', text: '微博动态 (100-200字)' }
+                ],
+                linkedin: [
+                    { value: 'post', text: '职场分享 (800-1500字)' }
+                ],
+                zhihu: [
+                    { value: 'article', text: '知乎回答 (1000-5000字)' }
+                ],
+                instagram: [
+                    { value: 'capton', text: '图片配文' }
+                ],
+                medium: [
+                    { value: 'article', text: '深度文章 (1000-3000字)' }
+                ]
+            };
+            
+            const select = document.getElementById('contentType');
+            select.innerHTML = types[state.currentPlatform]?.map(t => 
+                `<option value="${t.value}">${t.text}</option>`
+            ).join('') || '<option value="post">动态</option>';
+        }
+        
+        // 生成内容
+        async function generateContent() {
+            const topic = document.getElementById('topic').value.trim();
+            if (!topic) {
+                alert('请输入主题！');
+                return;
+            }
+            
+            const loading = document.getElementById('loading');
+            const contentArea = document.getElementById('contentArea');
+            loading.classList.add('active');
+            contentArea.style.opacity = '0.5';
+            
+            // 模拟AI生成延迟
+            await new Promise(r => setTimeout(r, 2000));
+            
+            // 生成内容
+            const content = generateMockContent(topic, state.currentPlatform);
+            
+            // 更新UI
+            document.getElementById('contentPreview').innerHTML = content;
+            updateTags(topic);
+            updateQuality();
+            
+            // 添加到历史
+            addToHistory(topic, content);
+            
+            loading.classList.remove('active');
+            contentArea.style.opacity = '1';
+            
+            // 更新统计
+            updateStats();
+        }
+        
+        // 模拟内容生成
+        function generateMockContent(topic, platform) {
+            const templates = {
+                blog: `<h2># ${topic}完全指南</h2>
+
+<p><strong>在当今快速发展的技术世界中，${topic}已经成为了一个不可忽视的重要话题。</strong>无论你是初学者还是资深开发者，掌握${topic}都将为你的职业生涯带来巨大的帮助。</p>
+
+<h2>什么是${topic}？</h2>
+
+<p>${topic}是[领域]中最具影响力的技术/概念之一。它主要解决以下问题：</p>
+
+<ul>
+<li>提高开发效率</li>
+<li>降低维护成本</li>
+<li>提升系统性能</li>
+</ul>
+
+<h2>核心原理</h2>
+
+<p>${topic}的核心思想可以概括为三个要点：</p>
+
+<h3>1. 原理一</h3>
+
+<p>详细的原理解释...</p>
+
+<h3>2. 原理二</h3>
+
+<p>详细的原理解释...</p>
+
+<h3>3. 原理三</h3>
+
+<p>详细的原理解释...</p>
+
+<h2>实战示例</h2>
+
+<pre><code># ${topic}示例代码
+def example_function():
+    result = process_data()
+    return result
+</code></pre>
+
+<h2>总结</h2>
+
+<p>${topic}是一个值得深入学习的技术/概念。希望本文能帮助你更好地理解和应用${topic}。</p>
+
+<hr>
+<p>💬 你对${topic}有什么看法？欢迎在评论区交流！</p>`,
+                
+                twitter: `🧵 关于${topic}，分享几个关键洞察：
+
+${topic}正在改变我们工作的方式。
+
+核心观点：
+→ 效率提升300%
+→ 成本降低50%  
+→ 体验翻倍
+
+#Tech #${topic.replace(' ', '')} #AI`,
+                
+                weibo: `救命！姐妹们！${topic}真的绝了！！！🙀
+
+最近在研究${topic}，没想到效果这么惊艳！
+
+✨ 具体感受：
+- 操作简单
+- 效果明显  
+- 性价比高
+
+姐妹们一定要试试！冲冲冲！💪
+
+#${topic} #好物分享 #生活技巧`,
+                
+                linkedin: `💼 关于${topic}，分享一段真实的职场经历。
+
+3年前，我对${topic}一无所知。
+2年前，我开始接触并学习。
+现在，${topic}已经成为我工作中最重要的技能之一。
+
+给职场新人的建议：
+
+1️⃣ 不要怕犯错
+2️⃣ 持续学习
+3️⃣ 建立个人品牌
+
+${topic}的时代已经到来，你准备好了吗？
+
+#职场成长 #技能提升 #${topic}`,
+                
+                zhihu: `<h2>为什么${topic}如此重要？</h2>
+
+<p>${topic}是当前最受关注的话题之一。本文将从多个角度进行全面解读。</p>
+
+<h2>核心观点</h2>
+
+<p>${topic}的核心价值在于...</p>
+
+<h2>发展趋势</h2>
+
+<p>未来${topic}将朝着以下方向发展：</p>
+
+<ul>
+<li>更加智能化</li>
+<li>更加普及化</li>
+<li>更加个性化</li>
+</ul>
+
+<h2>结论</h2>
+
+<p>${topic}值得每个人关注和学习。你对${topic}有什么看法？</p>`
+            };
+            
+            return templates[platform] || templates.blog;
+        }
+        
+        // 更新标签
+        function updateTags(topic) {
+            const tags = [
+                `#${topic}#`,
+                '#AI生成',
+                '#自动化营销',
+                '#效率工具'
+            ];
+            document.getElementById('tagsRow').innerHTML = tags.map(t => 
+                `<span class="tag hashtag">${t}</span>`
+            ).join('');
+        }
+        
+        // 更新质量分数
+        function updateQuality() {
+            const score = 75 + Math.random() * 20;
+            const bar = document.getElementById('qualityBar');
+            const scoreEl = document.getElementById('qualityScore');
+            
+            bar.style.width = score + '%';
+            bar.className = 'quality-fill ' + (
+                score >= 80 ? 'quality-high' : score >= 60 ? 'quality-mid' : 'quality-low'
+            );
+            scoreEl.textContent = Math.round(score) + '%';
+        }
+        
+        // 添加到历史
+        function addToHistory(topic, content) {
+            const item = {
+                topic,
+                platform: state.currentPlatform,
+                type: document.getElementById('contentType').value,
+                time: new Date().toLocaleTimeString()
+            };
+            state.history.unshift(item);
+            
+            renderHistory();
+        }
+        
+        // 渲染历史
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (state.history.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:#888; padding:40px;">暂无生成记录</div>';
+                return;
+            }
+            
+            list.innerHTML = state.history.map((h, i) => `
+                <div class="history-item" onclick="loadHistory(${i})">
+                    <div class="history-title">${platformIcons[h.platform]} ${h.topic}</div>
+                    <div class="history-meta">
+                        <span>${h.platform}</span>
+                        <span>${h.time}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 加载历史
+        function loadHistory(index) {
+            const h = state.history[index];
+            document.getElementById('topic').value = h.topic;
+            // 重新生成
+            generateContent();
+        }
+        
+        // 切换Tab
+        function switchTab(tab) {
+            ['preview', 'history', 'templates'].forEach(t => {
+                document.getElementById(t + 'Tab').style.display = 'none';
+            });
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            
+            document.getElementById(tab + 'Tab').style.display = 'block';
+            event.target.classList.add('active');
+            
+            if (tab === 'history') renderHistory();
+        }
+        
+        // 应用模板
+        function applyTemplate(el) {
+            const name = el.querySelector('.template-name').textContent;
+            const type = el.querySelector('.template-type').textContent;
+            
+            // 根据模板名称选择平台
+            if (name.includes('技术博客')) {
+                selectPlatform(document.querySelector('[data-platform="blog"]'));
+            } else if (name.includes('Twitter')) {
+                selectPlatform(document.querySelector('[data-platform="twitter"]'));
+            } else if (name.includes('微博')) {
+                selectPlatform(document.querySelector('[data-platform="weibo"]'));
+            } else if (name.includes('职场')) {
+                selectPlatform(document.querySelector('[data-platform="linkedin"]'));
+            }
+            
+            document.getElementById('topic').focus();
+        }
+        
+        // 复制内容
+        function copyContent() {
+            const content = document.getElementById('contentPreview').innerText;
+            navigator.clipboard.writeText(content).then(() => {
+                alert('已复制到剪贴板！');
+            });
+        }
+        
+        // 重新生成
+        function regenerate() {
+            generateContent();
+        }
+        
+        // 下载内容
+        function downloadContent() {
+            const topic = document.getElementById('topic').value || 'content';
+            const content = document.getElementById('contentPreview').innerHTML;
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${topic}-${Date.now()}.html`;
+            a.click();
+        }
+        
+        // 更新统计
+        function updateStats() {
+            const total = state.history.length;
+            document.getElementById('totalGenerated').textContent = total;
+            document.getElementById('avgQuality').textContent = Math.round(75 + Math.random() * 20) + '%';
+            document.getElementById('timeSaved').textContent = Math.round(total * 0.5) + 'h';
+        }
+        
+        // 初始化
+        renderHistory();
+    </script>
+</body>
+</html>
