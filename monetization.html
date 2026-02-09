@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 AI内容变现平台 - 数据分析与收益追踪</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #21262d 100%);
+            min-height: 100vh;
+            color: #e8e8e8;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        /* 头部 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(255,215,0,0.3);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+            background: linear-gradient(90deg, #ffd700, #ffaa00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .earnings-badge {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 20px;
+        }
+        .stat-card.gold {
+            background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,165,0,0.1));
+            border-color: rgba(255,215,0,0.3);
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .stat-value.gold { color: #ffd700; }
+        .stat-value.green { color: #00ff88; }
+        .stat-value.blue { color: #00ccff; }
+        .stat-value.purple { color: #a855f7; }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .stat-change {
+            font-size: 11px;
+            margin-top: 8px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        .stat-change.up { background: rgba(0,255,136,0.2); color: #00ff88; }
+        .stat-change.down { background: rgba(255,71,87,0.2); color: #ff4757; }
+        
+        /* 主网格 */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+        @media (max-width: 1100px) { .main-grid { grid-template-columns: 1fr; } }
+        
+        /* 面板 */
+        .panel {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 15px 20px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-title {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 图表区域 */
+        .chart-area {
+            padding: 20px;
+            height: 300px;
+        }
+        
+        /* 内容列表 */
+        .content-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .content-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .content-item:hover { background: rgba(255,255,255,0.03); }
+        .content-info { flex: 1; }
+        .content-title {
+            font-size: 13px;
+            color: #fff;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+        .content-meta {
+            font-size: 11px;
+            color: #888;
+            display: flex;
+            gap: 10px;
+        }
+        .content-stats {
+            text-align: right;
+        }
+        .content-views { font-size: 14px; color: #00ff88; font-weight: 600; }
+        .content-earnings { font-size: 12px; color: #ffd700; }
+        
+        /* 状态标签 */
+        .status {
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status.published { background: rgba(0,255,136,0.2); color: #00ff88; }
+        .status.scheduled { background: rgba(255,215,0,0.2); color: #ffd700; }
+        .status.draft { background: rgba(255,255,255,0.1); color: #888; }
+        
+        /* 平台分布 */
+        .platforms-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 15px;
+        }
+        .platform-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .platform-icon { font-size: 24px; margin-bottom: 5px; }
+        .platform-name { font-size: 11px; color: #888; }
+        .platform-value { font-size: 18px; font-weight: 700; margin: 5px 0; }
+        .platform-percent { font-size: 10px; color: #888; }
+        
+        /* 推荐区域 */
+        .recommendations {
+            padding: 15px;
+        }
+        .rec-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid #ffd700;
+        }
+        .rec-topic {
+            font-size: 13px;
+            color: #fff;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .rec-growth {
+            font-size: 11px;
+            color: #00ff88;
+            background: rgba(0,255,136,0.1);
+            padding: 2px 8px;
+            border-radius: 5px;
+        }
+        .rec-idea {
+            font-size: 11px;
+            color: #888;
+        }
+        
+        /* 变现摘要 */
+        .earnings-summary {
+            padding: 15px;
+        }
+        .earning-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .earning-label { color: #888; font-size: 13px; }
+        .earning-value { font-weight: 600; }
+        .earning-value.pending { color: #ffd700; }
+        .earning-value.available { color: #00ff88; }
+        
+        /* 按钮 */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #00ff88, #00ccff);
+            color: #000;
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .btn:hover { transform: translateY(-2px); }
+        
+        /* Tab */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .tab:hover { color: #fff; }
+        .tab.active { color: #ffd700; border-bottom: 2px solid #ffd700; }
+        
+        /* 加载 */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .loading.active { display: block; }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #ffd700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* 提示 */
+        .tip {
+            font-size: 11px;
+            color: #888;
+            padding: 10px 15px;
+            background: rgba(255,215,0,0.05);
+            border-radius: 6px;
+            margin: 10px 15px;
+            border-left: 3px solid #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💰 AI内容变现平台</h1>
+        <div class="earnings-badge">💵 总收益: ¥<span id="totalEarnings">0.00</span></div>
+    </div>
+    
+    <div class="container">
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card gold">
+                <div class="stat-value gold" id="totalEarnings2">¥0.00</div>
+                <div class="stat-label">总收益</div>
+                <div class="stat-change up">📈 +12.5%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value green" id="totalViews">0</div>
+                <div class="stat-label">总浏览量</div>
+                <div class="stat-change up">📈 +8.3%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value blue" id="totalContent">0</div>
+                <div class="stat-label">内容数</div>
+                <div class="stat-change up">📈 +3</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value purple" id="engagementRate">0%</div>
+                <div class="stat-label">互动率</div>
+                <div class="stat-change down">📉 -0.5%</div>
+            </div>
+        </div>
+        
+        <div class="main-grid">
+            <!-- 左侧 -->
+            <div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">📈 收益趋势</span>
+                        <select id="timeRange" style="background:rgba(255,255,255,0.1); border:none; color:#fff; padding:5px 10px; border-radius:5px;">
+                            <option value="7">最近7天</option>
+                            <option value="30">最近30天</option>
+                            <option value="90">最近90天</option>
+                        </select>
+                    </div>
+                    <div class="chart-area">
+                        <canvas id="earningsChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab('contents')">所有内容</button>
+                        <button class="tab" onclick="switchTab('published')">已发布</button>
+                        <button class="tab" onclick="switchTab('scheduled')">定时中</button>
+                    </div>
+                    <div class="content-list" id="contentList">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧 -->
+            <div>
+                <!-- 收益摘要 -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">💵 收益摘要</span>
+                    </div>
+                    <div class="earnings-summary">
+                        <div class="earning-row">
+                            <span class="earning-label">待提现</span>
+                            <span class="earning-value pending" id="pending">¥0.00</span>
+                        </div>
+                        <div class="earning-row">
+                            <span class="earning-label">可提现</span>
+                            <span class="earning-value available" id="available">¥0.00</span>
+                        </div>
+                        <div class="earning-row">
+                            <span class="earning-label">已提现</span>
+                            <span class="earning-value">¥0.00</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <button class="btn btn-primary" style="width:100%;">申请提现</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 平台分布 -->
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-header">
+                        <span class="panel-title">🌐 平台分布</span>
+                    </div>
+                    <div class="chart-area" style="height: 200px;">
+                        <canvas id="platformChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 推荐 -->
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-header">
+                        <span class="panel-title">💡 变现推荐</span>
+                    </div>
+                    <div class="recommendations">
+                        <div class="rec-item">
+                            <div class="rec-topic">
+                                <span>🔥 热门话题</span>
+                                <span class="rec-growth">+25%</span>
+                            </div>
+                            <div class="rec-idea">• AI工具完全指南</div>
+                            <div class="rec-idea">• Python异步编程技巧</div>
+                        </div>
+                        <div class="rec-item">
+                            <div class="rec-topic">
+                                <span>⏰ 最佳发布时间</span>
+                            </div>
+                            <div class="rec-idea">Twitter: 09:00 / 12:00 / 18:00</div>
+                            <div class="rec-idea">博客: 07:00 / 20:00</div>
+                        </div>
+                        <button class="btn btn-secondary" style="width:100%; margin-top:10px;" onclick="generateIdeas()">
+                            ✨ 生成创意
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tab内容 -->
+    <div id="publishedTab" style="display:none;"></div>
+    <div id="scheduledTab" style="display:none;"></div>
+    
+    <script>
+        // 模拟数据
+        const mockData = {
+            overview: {
+                total_content: 15,
+                total_views: 58100,
+                total_engagement: 4431,
+                avg_engagement_rate: 7.63,
+                total_earnings: 58.30,
+                top_platform: "blog"
+            },
+            earnings: {
+                total: 58.30,
+                pending: 40.81,
+                available: 17.49,
+                by_platform: {
+                    twitter: 12.50,
+                    blog: 45.80
+                }
+            },
+            trends: {
+                labels: ['02-03', '02-04', '02-05', '02-06', '02-07', '02-08', '02-09'],
+                views: [5200, 6800, 7100, 5900, 8900, 12300, 11900],
+                engagement: [420, 510, 580, 470, 720, 890, 841],
+                earnings: [5.2, 6.8, 7.1, 5.9, 8.9, 12.3, 12.1]
+            },
+            contents: [
+                { id: 'cnt_001', platform: 'twitter', title: 'Python异步编程技巧', views: 12500, likes: 892, earnings: 12.50, status: 'published' },
+                { id: 'cnt_002', platform: 'blog', title: 'AI工具完全指南', views: 45600, likes: 2340, earnings: 45.80, status: 'published' },
+                { id: 'cnt_003', platform: 'linkedin', title: '5年职场教会我的', views: 0, likes: 0, earnings: 0.00, status: 'scheduled' }
+            ]
+        };
+        
+        // 图表实例
+        let earningsChart, platformChart;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            initCharts();
+        });
+        
+        // 加载数据
+        async function loadData() {
+            // 更新统计
+            document.getElementById('totalEarnings').textContent = mockData.earnings.total.toFixed(2);
+            document.getElementById('totalEarnings2').textContent = '¥' + mockData.earnings.total.toFixed(2);
+            document.getElementById('totalViews').textContent = mockData.overview.total_views.toLocaleString();
+            document.getElementById('totalContent').textContent = mockData.overview.total_content;
+            document.getElementById('engagementRate').textContent = mockData.overview.avg_engagement_rate + '%';
+            
+            // 更新收益
+            document.getElementById('pending').textContent = '¥' + mockData.earnings.pending.toFixed(2);
+            document.getElementById('available').textContent = '¥' + mockData.earnings.available.toFixed(2);
+            
+            // 更新内容列表
+            renderContentList();
+        }
+        
+        // 渲染内容列表
+        function renderContentList() {
+            const list = document.getElementById('contentList');
+            const icons = { twitter: '🐦', blog: '📝', linkedin: '💼', weibo: '🔹' };
+            
+            list.innerHTML = mockData.contents.map(c => `
+                <div class="content-item">
+                    <div class="content-info">
+                        <div class="content-title">${icons[c.platform] || '📄'} ${c.title}</div>
+                        <div class="content-meta">
+                            <span class="status ${c.status}">${c.status}</span>
+                            <span>${c.likes} 点赞</span>
+                        </div>
+                    </div>
+                    <div class="content-stats">
+                        <div class="content-views">${c.views.toLocaleString()}</div>
+                        <div class="content-earnings">¥${c.earnings.toFixed(2)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 初始化图表
+        function initCharts() {
+            // 收益趋势图
+            const ctx1 = document.getElementById('earningsChart').getContext('2d');
+            earningsChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: mockData.trends.labels,
+                    datasets: [{
+                        label: '收益',
+                        data: mockData.trends.earnings,
+                        borderColor: '#ffd700',
+                        backgroundColor: 'rgba(255,215,0,0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { 
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#888' }
+                        }
+                    }
+                }
+            });
+            
+            // 平台分布图
+            const ctx2 = document.getElementById('platformChart').getContext('2d');
+            platformChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['博客', 'Twitter'],
+                    datasets: [{
+                        data: [45.80, 12.50],
+                        backgroundColor: ['#00ccff', '#00ff88'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'bottom',
+                            labels: { color: '#888' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 切换Tab
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // 筛选内容
+            if (tab === 'contents') {
+                renderContentList();
+            } else {
+                const filtered = mockData.contents.filter(c => c.status === tab);
+                const list = document.getElementById('contentList');
+                if (filtered.length === 0) {
+                    list.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">暂无内容</div>';
+                } else {
+                    renderContentList();
+                }
+            }
+        }
+        
+        // 生成创意
+        function generateIdeas() {
+            const ideas = [
+                '5个让你效率翻倍的AI工具',
+                '为什么Python仍然是2024最流行的语言',
+                '从0到1：AI辅助编程完全指南',
+                '程序员必知的10个效率技巧',
+                'AI时代，如何保持竞争力？'
+            ];
+            const random = ideas[Math.floor(Math.random() * ideas.length)];
+            alert('💡 创意建议：\n\n' + random);
+        }
+    </script>
+</body>
+</html>
